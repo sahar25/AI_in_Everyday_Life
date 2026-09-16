@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Review: AI in Everyday Life I &amp; II</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --p:#4A3FE0; --p-dk:#2E2790; --sec:#EDEBFF; --acc:#FF6B5B;
+    --ink:#1D1B33; --mute:#6B6885; --ok:#3FA66A; --ok-bg:#E8F7EE;
+    --bad:#E5484D; --bad-bg:#FDECEC; --card:#FFFFFF; --bg:#F7F6FF;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:'Inter',system-ui,sans-serif; -webkit-font-smoothing:antialiased;
+    min-height:100vh; display:flex; flex-direction:column; align-items:center;
+    padding:32px 16px 64px;
+  }
+  .topbar{
+    width:100%; max-width:720px; display:flex; flex-direction:column; gap:14px; margin-bottom:28px;
+  }
+  h1{
+    font-family:'Source Serif 4',Georgia,serif; font-size:clamp(24px,4vw,32px);
+    font-weight:700; margin:0; color:var(--p-dk); line-height:1.15;
+  }
+  .progress-wrap{
+    width:100%; height:8px; background:var(--sec); border-radius:99px; overflow:hidden; margin-top:6px;
+  }
+  .progress-bar{
+    height:100%; background:linear-gradient(90deg,var(--p),var(--acc)); width:0%;
+    transition:width .35s ease;
+  }
+  .progress-label{ font-size:12.5px; color:var(--mute); text-align:right; }
+
+  .card{
+    width:100%; max-width:720px; background:var(--card); border-radius:18px;
+    box-shadow:0 1px 2px rgba(30,20,90,.04), 0 12px 32px rgba(30,20,90,.07);
+    padding:32px; position:relative; overflow:hidden;
+  }
+  .qtype{
+    display:inline-block; font-size:11.5px; font-weight:700; letter-spacing:1.2px;
+    text-transform:uppercase; color:var(--p); background:var(--sec);
+    padding:4px 10px; border-radius:99px; margin-bottom:14px;
+  }
+  .qtext{
+    font-size:19px; font-weight:600; line-height:1.45; margin:0 0 22px; color:var(--ink);
+  }
+  .options{ display:flex; flex-direction:column; gap:10px; }
+  .opt{
+    text-align:left; width:100%; padding:14px 16px; border-radius:12px;
+    border:1.5px solid #E4E1FF; background:#FBFAFF; cursor:pointer;
+    font-family:inherit; font-size:14.5px; color:var(--ink);
+    display:flex; align-items:center; gap:12px; transition:border-color .15s, background .15s;
+  }
+  .opt:hover:not(.locked){ border-color:var(--p); background:#F3F1FF; }
+  .opt .letter{
+    flex:none; width:28px; height:28px; border-radius:50%; background:var(--p);
+    color:#fff; font-weight:700; font-size:12.5px; display:flex; align-items:center; justify-content:center;
+  }
+  .opt.correct{ border-color:var(--ok); background:var(--ok-bg); }
+  .opt.correct .letter{ background:var(--ok); }
+  .opt.incorrect{ border-color:var(--bad); background:var(--bad-bg); }
+  .opt.incorrect .letter{ background:var(--bad); }
+  .opt.locked{ cursor:default; }
+  .opt.dimmed{ opacity:.55; }
+
+  .feedback{
+    margin-top:18px; padding:16px 18px; border-radius:12px; font-size:14px; line-height:1.55;
+    display:none;
+  }
+  .feedback.show{ display:block; }
+  .feedback.ok{ background:var(--ok-bg); color:#1F6B43; border:1px solid #BFEAD3; }
+  .feedback.bad{ background:var(--bad-bg); color:#9C2B2E; border:1px solid #F6C6C7; }
+  .feedback .verdict{ font-weight:700; margin-bottom:4px; display:block; }
+
+  .nextbar{ margin-top:22px; display:flex; justify-content:flex-end; }
+  .btn{
+    font-family:inherit; font-size:14.5px; font-weight:600; border:none; border-radius:10px;
+    padding:12px 22px; cursor:pointer; background:var(--p); color:#fff; transition:background .15s;
+  }
+  .btn:hover{ background:var(--p-dk); }
+  .btn:disabled{ opacity:.4; cursor:not-allowed; }
+
+  .result{ text-align:center; }
+  .score-ring{
+    width:140px; height:140px; margin:8px auto 20px; border-radius:50%;
+    background:conic-gradient(var(--p) calc(var(--pct)*1%), var(--sec) 0);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .score-ring-inner{
+    width:112px; height:112px; border-radius:50%; background:#fff;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+  }
+  .score-num{ font-family:'Source Serif 4',Georgia,serif; font-size:30px; font-weight:700; color:var(--p-dk); }
+  .score-den{ font-size:12.5px; color:var(--mute); }
+  .result-msg{ font-size:15.5px; color:var(--ink); max-width:480px; margin:0 auto 22px; line-height:1.55; }
+  .result-actions{ display:flex; gap:12px; justify-content:center; flex-wrap:wrap; }
+
+  .footer-note{
+    max-width:720px; text-align:center; color:var(--mute); font-size:12.5px; margin-top:22px; line-height:1.5;
+  }
+  @media (max-width:480px){ .card{ padding:22px 18px; } }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>Review: AI in Everyday Life I &amp; II</h1>
+  <div class="progress-wrap"><div class="progress-bar" id="progressBar"></div></div>
+  <div class="progress-label" id="progressLabel">Question 1 of 32</div>
+</div>
+
+<div class="card" id="card"></div>
+
+<div class="footer-note">This is a practice tool for your own review. It is not connected to Canvas and your answers here are not recorded or graded.</div>
+
+<script>
+const QUESTIONS = [
+  {
+    type: "Multiple Choice",
+    q: "What is the correct order of the three stages a search engine uses, according to Google's own explanation?",
+    options: ["Ranking, Indexing, Crawling", "Crawling, Indexing, Ranking", "Indexing, Crawling, Ranking", "Ranking, Crawling, Indexing"],
+    correct: 1,
+    okMsg: "Correct \u2014 crawlers scan the web first, that content gets indexed, and only then are results ranked when you search.",
+    badMsg: "The correct order is Crawling, then Indexing, then Ranking \u2014 crawlers gather content first, it gets stored in the index, and ranking happens last, at search time."
+  },
+  {
+    type: "Multiple Choice",
+    q: "When you type a search query, what are you actually searching?",
+    options: ["The live internet, in real time", "The search engine's own pre-built index", "Only websites you've visited before", "A random sample of web pages"],
+    correct: 1,
+    okMsg: "Correct \u2014 search engines query their own pre-built index, not the live web, which is why results appear almost instantly.",
+    badMsg: "You're actually searching the engine's pre-built index, not the live internet \u2014 that's part of why results come back so fast."
+  },
+  {
+    type: "True / False",
+    q: "True or False: Modern search ranking relies only on exact keyword matching, with no understanding of what you actually meant.",
+    options: ["True", "False"],
+    correct: 1,
+    okMsg: "Correct \u2014 modern ranking uses deep learning language models to understand intent, not just literal keywords.",
+    badMsg: "This is false. Modern search ranking uses deep learning language models to understand your intent, not just literal keyword matches."
+  },
+  {
+    type: "Multiple Choice",
+    q: "A user who only watches documentaries gets recommended a new documentary because it shares the same director and tone. Which approach is this?",
+    options: ["Collaborative filtering", "Content-based filtering", "Rule-based filtering", "Unsupervised clustering only"],
+    correct: 1,
+    okMsg: "Correct \u2014 this recommendation is based on the item's own features (director, tone), which is content-based filtering.",
+    badMsg: "This is content-based filtering \u2014 the recommendation is based on the item's own features, not on what similar users liked."
+  },
+  {
+    type: "Multiple Choice",
+    q: "A user gets recommended a product purely because people with similar purchase histories bought it, even though the product looks nothing like their past purchases. Which approach is this?",
+    options: ["Content-based filtering", "Collaborative filtering", "Image classification", "Object detection"],
+    correct: 1,
+    okMsg: "Correct \u2014 basing a recommendation on what similar users liked, regardless of the item's own features, is collaborative filtering.",
+    badMsg: "This is collaborative filtering \u2014 the recommendation comes from what similar users liked, not from the item's own features."
+  },
+  {
+    type: "Multiple Choice",
+    q: "What does a \u201Chybrid\u201D recommendation system do?",
+    options: ["Ignores all user data", "Combines content-based and collaborative filtering", "Only works for video content", "Uses rule-based logic exclusively"],
+    correct: 1,
+    okMsg: "Correct \u2014 hybrid systems, like Netflix's, blend both approaches to get the strengths of each.",
+    badMsg: "A hybrid system combines content-based and collaborative filtering together \u2014 Netflix is a well-known real example."
+  },
+  {
+    type: "Multiple Choice",
+    q: "What does \u201CASR\u201D stand for?",
+    options: ["Automatic Speech Recognition", "Advanced Search Ranking", "Artificial Sound Reproduction", "Audio Signal Router"],
+    correct: 0,
+    okMsg: "Correct \u2014 ASR is the technical name for the technology that turns spoken audio into text.",
+    badMsg: "ASR stands for Automatic Speech Recognition \u2014 the technology that converts spoken audio into written text."
+  },
+  {
+    type: "Multiple Choice",
+    q: "In the voice assistant pipeline, which step actually converts a sound wave into written words?",
+    options: ["Audio capture", "Speech-to-text", "Understanding intent", "Action and reply"],
+    correct: 1,
+    okMsg: "Correct \u2014 speech-to-text is specifically the conversion of sound into written text.",
+    badMsg: "That's the speech-to-text step \u2014 audio capture just picks up the raw sound; speech-to-text is what converts it into words."
+  },
+  {
+    type: "Multiple Choice",
+    q: "Which step in the voice assistant pipeline figures out what you actually want, not just which words you said?",
+    options: ["Audio capture", "Speech-to-text", "Understanding intent (natural language processing)", "Action and reply"],
+    correct: 2,
+    okMsg: "Correct \u2014 understanding intent is where natural language processing determines the actual goal behind your words.",
+    badMsg: "That's the understanding intent step \u2014 speech-to-text only gets you the words; this step figures out what you actually want."
+  },
+  {
+    type: "Multiple Answer",
+    q: "Select ALL of the following that are real-world examples of a recommendation engine at work.",
+    options: ["YouTube's next suggested video", "A calculator computing a tax formula", "Amazon's \u2018customers also bought\u2019 section", "Spotify's next queued song", "A thermostat switching on below 68\u00B0F"],
+    correctMulti: [0,2,3],
+    okMsg: "Correct \u2014 the next-video, \u2018customers also bought,\u2019 and next-song features are all recommendation engines. The calculator and thermostat are simple rule-based systems.",
+    badMsg: "The recommendation engines here are YouTube's next video, Amazon's \u2018customers also bought,\u2019 and Spotify's next song. The calculator and thermostat are rule-based, not recommendation systems."
+  },
+  {
+    type: "Multiple Choice",
+    q: "According to IBM, computer vision can be pictured as the interaction of which three processes?",
+    options: ["Uploading, storing, deleting", "Recognition, reconstruction, reorganization", "Cropping, filtering, compressing", "Training, testing, validating"],
+    correct: 1,
+    okMsg: "Correct \u2014 recognition identifies what's in an image, reconstruction derives 3D shape, and reorganization infers relationships between things.",
+    badMsg: "IBM's three processes are recognition, reconstruction, and reorganization \u2014 not upload/storage tasks or generic ML steps."
+  },
+  {
+    type: "Multiple Choice",
+    q: "To a computer, what is an image actually made of, before any processing happens?",
+    options: ["A written description in English", "A grid of numbers representing color and brightness at each pixel", "A single number representing the whole picture", "A list of object names"],
+    correct: 1,
+    okMsg: "Correct \u2014 an image starts as nothing but a grid of numeric pixel values until a neural network processes it.",
+    badMsg: "An image is just a grid of numbers \u2014 each pixel holds a numeric value for color and brightness, with no \u2018picture\u2019 until it's processed."
+  },
+  {
+    type: "Multiple Choice",
+    q: "An app draws a box around each cat in a photo and labels it \u2018cat.\u2019 Which computer vision task is this?",
+    options: ["Image classification", "Object detection", "Image segmentation", "Facial recognition"],
+    correct: 1,
+    okMsg: "Correct \u2014 finding and boxing individual items is object detection.",
+    badMsg: "Drawing a box around each specific item and labeling it is object detection, not classification (which labels the whole image) or segmentation (which traces exact outlines)."
+  },
+  {
+    type: "Multiple Choice",
+    q: "An app assigns the single label \u2018beach photo\u2019 to an entire image without locating anything specific inside it. Which task is this?",
+    options: ["Object detection", "Image classification", "Image segmentation", "Facial recognition"],
+    correct: 1,
+    okMsg: "Correct \u2014 assigning one label to a whole image, with no specific location, is image classification.",
+    badMsg: "That's image classification \u2014 it labels the whole image without pointing to specific objects, unlike object detection."
+  },
+  {
+    type: "Multiple Choice",
+    q: "A self-driving car needs to know the exact pixel boundary between the road and the sidewalk. Which computer vision task provides that?",
+    options: ["Image classification", "Object detection", "Image segmentation", "Association"],
+    correct: 2,
+    okMsg: "Correct \u2014 image segmentation divides an image into meaningful parts pixel by pixel, exactly what's needed for a precise road/sidewalk boundary.",
+    badMsg: "That's image segmentation \u2014 it works pixel by pixel, which is what's needed for a precise boundary, unlike a rough box (object detection) or single label (classification)."
+  },
+  {
+    type: "Multiple Choice",
+    q: "According to SAE International, what happens at Level 2 automation?",
+    options: ["The human does all driving with no assistance", "The car controls steering and speed together, but the driver must stay alert", "The car drives itself everywhere with no steering wheel", "The car only works in a mapped robotaxi service area with no takeover needed"],
+    correct: 1,
+    okMsg: "Correct \u2014 Level 2 combines steering and speed control, but the driver must remain alert and ready to intervene.",
+    badMsg: "Level 2 is when the car controls both steering and speed together, but the driver must still stay alert \u2014 that's different from Level 1 (only one function) or Level 4/5 (no driver needed)."
+  },
+  {
+    type: "Multiple Choice",
+    q: "Which SAE level is the first one where the car can genuinely drive itself, but only in specific, limited conditions, with the driver ready to take back control?",
+    options: ["Level 1", "Level 2", "Level 3", "Level 5"],
+    correct: 2,
+    okMsg: "Correct \u2014 Level 3, Conditional Automation, is the first level where the car can truly self-drive, but only under limited conditions.",
+    badMsg: "That's Level 3, Conditional Automation \u2014 the first level where the car genuinely drives itself, though only under specific conditions."
+  },
+  {
+    type: "True / False",
+    q: "True or False: A car sold to consumers today can operate at full Level 5 automation, everywhere, in all conditions, with no steering wheel.",
+    options: ["True", "False"],
+    correct: 1,
+    okMsg: "Correct \u2014 Level 5 doesn't commercially exist anywhere yet; the most advanced real systems today sit at Level 2, 3, or 4.",
+    badMsg: "This is false. Level 5 does not commercially exist yet anywhere \u2014 today's most advanced systems operate at Level 2, 3, or 4."
+  },
+  {
+    type: "Multiple Choice",
+    q: "Inside a self-driving car's full sensor system, what is computer vision specifically responsible for?",
+    options: ["Measuring distance using lasers", "Interpreting what the cameras see \u2014 lane lines, signs, pedestrians, vehicles", "Controlling the car's air conditioning", "Charging the car's battery"],
+    correct: 1,
+    okMsg: "Correct \u2014 computer vision specifically interprets camera input; laser-based distance sensing is a separate system called lidar.",
+    badMsg: "Computer vision's job is interpreting what the cameras see \u2014 lane lines, signs, pedestrians, and other vehicles. Laser distance sensing is a separate system called lidar."
+  },
+  {
+    type: "Multiple Answer",
+    q: "Select ALL of the following that are true about how search engines rank results.",
+    options: ["Ranking happens using the pre-built index, not the live web", "Ranking only considers how many times a keyword appears", "Deep learning language models help interpret the intent behind a query", "Ranking considers relevance and quality of a page, not just keyword matches"],
+    correctMulti: [0,2,3],
+    okMsg: "Correct \u2014 ranking uses the index, applies intent-understanding via language models, and weighs relevance and quality \u2014 not just raw keyword counts.",
+    badMsg: "Ranking uses the pre-built index, applies deep learning to understand intent, and weighs relevance and quality \u2014 not just how many times a keyword appears."
+  },
+  {
+    type: "Multiple Choice",
+    q: "What is the main limitation of content-based filtering, compared to collaborative filtering?",
+    options: ["It requires no data about the user at all", "It can't recommend something outside what the user already likes", "It only works for movies, never products", "It always requires manual human review of every recommendation"],
+    correct: 1,
+    okMsg: "Correct \u2014 content-based filtering is limited to items similar to what's already liked; it can't surprise a user with something different.",
+    badMsg: "The limitation is that content-based filtering can't recommend outside the user's existing preferences \u2014 collaborative filtering can surprise them with something different."
+  },
+  {
+    type: "Multiple Choice",
+    q: "A voice assistant asked \u201CWhat's the weather tomorrow?\u201D eventually speaks a reply back to the user. Which pipeline step is that final spoken reply part of?",
+    options: ["Audio capture", "Speech-to-text", "Understanding intent", "Action and reply"],
+    correct: 3,
+    okMsg: "Correct \u2014 performing the action (checking the forecast) and speaking the answer back is the final \u2018action and reply\u2019 step.",
+    badMsg: "That's the \u2018action and reply\u2019 step \u2014 it's the final stage, where the assistant performs the task and speaks its answer back."
+  },
+  {
+    type: "True / False",
+    q: "True or False: IBM's Shoebox machine from 1962 could recognize about 16,000 spoken words.",
+    options: ["True", "False"],
+    correct: 1,
+    okMsg: "Correct \u2014 the Shoebox could recognize just 16 words, not 16,000. Modern systems handle nearly unlimited vocabulary by comparison.",
+    badMsg: "This is false. The 1962 Shoebox machine could recognize only about 16 words, not 16,000 \u2014 a huge contrast with modern systems."
+  },
+  {
+    type: "Multiple Choice",
+    q: "A radiologist reading an X-ray judges the depth and shape of a shadow they spotted. Which of computer vision's three processes does this match?",
+    options: ["Recognition", "Reconstruction", "Reorganization", "Classification"],
+    correct: 1,
+    okMsg: "Correct \u2014 judging shape and depth is reconstruction, the process of deriving 3D characteristics.",
+    badMsg: "Judging shape and depth is reconstruction \u2014 recognition would be spotting the shadow in the first place, and reorganization relates it to nearby structures."
+  },
+  {
+    type: "Multiple Choice",
+    q: "What is the biggest difference between image classification and object detection?",
+    options: ["There is no real difference between them", "Classification labels the whole image; object detection finds and labels individual items within it", "Object detection only works on black-and-white images", "Classification requires a self-driving car; object detection does not"],
+    correct: 1,
+    okMsg: "Correct \u2014 classification gives one label to the whole image, while object detection locates and labels multiple individual items.",
+    badMsg: "Classification assigns one label to the entire image; object detection finds and labels individual items, often with boxes around each one."
+  },
+  {
+    type: "Multiple Choice",
+    q: "Which SAE level description matches: \u2018the car handles all driving within defined conditions, and no driver takeover is needed there\u2019?",
+    options: ["Level 2", "Level 3", "Level 4", "Level 5"],
+    correct: 2,
+    okMsg: "Correct \u2014 that's Level 4, High Automation, which is where services like robotaxis currently operate.",
+    badMsg: "That's Level 4, High Automation \u2014 note it's limited to defined conditions, which is what separates it from full Level 5."
+  },
+  {
+    type: "Multiple Choice",
+    q: "Why do modern search engines try to understand \u2018intent\u2019 rather than just matching literal keywords?",
+    options: ["Because keyword matching is illegal", "Because many everyday searches (typos, casual phrasing, synonyms) would fail with literal matching alone", "Because intent-matching uses less computing power", "Because users are required to type in full sentences"],
+    correct: 1,
+    okMsg: "Correct \u2014 without intent understanding, a huge number of normal, everyday searches (typos, synonyms, conversational phrasing) would simply fail.",
+    badMsg: "It's because a large number of everyday searches \u2014 typos, casual phrasing, synonyms \u2014 would fail if the engine only matched literal keywords."
+  },
+  {
+    type: "Multiple Choice",
+    q: "In a self-driving car, which technology uses lasers to measure distance precisely, separate from cameras?",
+    options: ["Lidar", "ASR", "Collaborative filtering", "Dimensionality reduction"],
+    correct: 0,
+    okMsg: "Correct \u2014 lidar is the laser-based distance-sensing technology, distinct from the camera-based computer vision system.",
+    badMsg: "That's lidar \u2014 a laser-based distance sensor, separate from (but working alongside) the camera-based computer vision system."
+  },
+  {
+    type: "Multiple Choice",
+    q: "A streaming platform recommends a show because users with a similar viewing history also watched it \u2014 even though the show is a completely different genre from what this user usually watches. What does this best illustrate?",
+    options: ["A limitation of content-based filtering", "The strength of collaborative filtering \u2014 it can surprise users outside their usual preferences", "A rule-based recommendation", "Image segmentation"],
+    correct: 1,
+    okMsg: "Correct \u2014 this is exactly collaborative filtering's advantage: it can recommend something genuinely different, based on similar users, not item features.",
+    badMsg: "This shows collaborative filtering's strength \u2014 it can recommend something outside a user's usual genre, since it's based on similar users, not the item's own features."
+  },
+  {
+    type: "Multiple Choice",
+    q: "Which of these best describes facial recognition as a computer vision task?",
+    options: ["Assigning one label to an entire photo", "Identifying or verifying a specific person from their facial features", "Dividing an image into pixel-level regions", "Measuring distance using lasers"],
+    correct: 1,
+    okMsg: "Correct \u2014 facial recognition identifies or verifies a specific individual based on facial features, like unlocking a phone.",
+    badMsg: "Facial recognition identifies or verifies a specific person from facial features \u2014 that's different from classification, segmentation, or lidar."
+  },
+  {
+    type: "True / False",
+    q: "True or False: Computer vision systems, like all AI systems covered this semester, are only as good as the data they were trained on.",
+    options: ["True", "False"],
+    correct: 0,
+    okMsg: "Correct \u2014 this is a running theme all semester: a system's blind spots trace directly back to gaps or biases in its training data.",
+    badMsg: "This is actually true, and it's a theme from the whole semester \u2014 a system's mistakes and blind spots usually trace back to its training data."
+  },
+  {
+    type: "Multiple Choice",
+    q: "Overall, what connects search, recommendations, voice assistants, and computer vision, according to what was covered across these two weeks?",
+    options: ["They are all unrelated, unrelated technologies with nothing in common", "They are all everyday, often-invisible applications of the AI concepts covered earlier in the semester (algorithms, machine learning, neural networks)", "They all require a self-driving car to function", "None of them use any form of machine learning"],
+    correct: 1,
+    okMsg: "Exactly right \u2014 all four are everyday applications built on the same foundations covered all semester: algorithms, machine learning, and neural networks.",
+    badMsg: "All four \u2014 search, recommendations, voice assistants, and computer vision \u2014 are everyday applications of the same AI concepts covered all semester: algorithms, machine learning, and neural networks."
+  }
+];
+
+let current = 0;
+let score = 0;
+let answered = false;
+let selectedMulti = new Set();
+
+const card = document.getElementById('card');
+const progressBar = document.getElementById('progressBar');
+const progressLabel = document.getElementById('progressLabel');
+
+function letterFor(i){ return String.fromCharCode(65+i); }
+
+function renderQuestion(){
+  answered = false;
+  selectedMulti = new Set();
+  const item = QUESTIONS[current];
+  const isMulti = item.type === "Multiple Answer";
+  progressBar.style.width = ((current)/QUESTIONS.length*100) + '%';
+  progressLabel.textContent = `Question ${current+1} of ${QUESTIONS.length}`;
+
+  let html = `<span class="qtype">${item.type}</span>`;
+  html += `<p class="qtext">${item.q}</p>`;
+  if(isMulti){
+    html += `<p style="font-size:12.5px;color:var(--mute);margin:-14px 0 14px;">Select all that apply, then click Submit.</p>`;
+  }
+  html += `<div class="options" id="options">`;
+  item.options.forEach((opt,i)=>{
+    html += `<button class="opt" data-i="${i}"><span class="letter">${letterFor(i)}</span><span>${opt}</span></button>`;
+  });
+  html += `</div>`;
+  html += `<div class="feedback" id="feedback"></div>`;
+  html += `<div class="nextbar">`;
+  if(isMulti){
+    html += `<button class="btn" id="submitBtn">Submit answer</button>`;
+  }
+  html += `<button class="btn" id="nextBtn" disabled style="margin-left:10px;">${current === QUESTIONS.length-1 ? 'See my results' : 'Next question'}</button></div>`;
+
+  card.innerHTML = html;
+
+  if(isMulti){
+    document.querySelectorAll('.opt').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        if(answered) return;
+        const i = parseInt(btn.dataset.i);
+        if(selectedMulti.has(i)){ selectedMulti.delete(i); btn.style.background=''; btn.style.borderColor=''; }
+        else { selectedMulti.add(i); btn.style.background='#F3F1FF'; btn.style.borderColor='var(--p)'; }
+      });
+    });
+    document.getElementById('submitBtn').addEventListener('click', ()=> selectMultiSubmit());
+  } else {
+    document.querySelectorAll('.opt').forEach(btn=>{
+      btn.addEventListener('click', ()=> selectOption(parseInt(btn.dataset.i)));
+    });
+  }
+  document.getElementById('nextBtn').addEventListener('click', nextQuestion);
+}
+
+function selectOption(i){
+  if(answered) return;
+  answered = true;
+  const item = QUESTIONS[current];
+  const opts = document.querySelectorAll('.opt');
+  const isCorrect = i === item.correct;
+  if(isCorrect) score++;
+
+  opts.forEach((btn,idx)=>{
+    btn.classList.add('locked');
+    if(idx === item.correct) btn.classList.add('correct');
+    else if(idx === i) btn.classList.add('incorrect');
+    else btn.classList.add('dimmed');
+  });
+
+  showFeedback(isCorrect, item);
+}
+
+function selectMultiSubmit(){
+  if(answered) return;
+  answered = true;
+  const item = QUESTIONS[current];
+  const opts = document.querySelectorAll('.opt');
+  const correctSet = new Set(item.correctMulti);
+  const isCorrect = correctSet.size === selectedMulti.size && [...correctSet].every(x=>selectedMulti.has(x));
+  if(isCorrect) score++;
+
+  opts.forEach((btn,idx)=>{
+    btn.classList.add('locked');
+    btn.style.background=''; btn.style.borderColor='';
+    if(correctSet.has(idx)) btn.classList.add('correct');
+    else if(selectedMulti.has(idx)) btn.classList.add('incorrect');
+    else btn.classList.add('dimmed');
+  });
+  document.getElementById('submitBtn').style.display = 'none';
+
+  showFeedback(isCorrect, item);
+}
+
+function showFeedback(isCorrect, item){
+  const fb = document.getElementById('feedback');
+  fb.classList.add('show', isCorrect ? 'ok' : 'bad');
+  fb.innerHTML = `<span class="verdict">${isCorrect ? '\u2713 Correct' : '\u2717 Not quite'}</span>${isCorrect ? item.okMsg : item.badMsg}`;
+  document.getElementById('nextBtn').disabled = false;
+}
+
+function nextQuestion(){
+  if(current < QUESTIONS.length - 1){
+    current++;
+    renderQuestion();
+  } else {
+    renderResult();
+  }
+}
+
+function renderResult(){
+  progressBar.style.width = '100%';
+  progressLabel.textContent = `Finished \u2014 ${QUESTIONS.length} of ${QUESTIONS.length}`;
+  const pct = Math.round((score/QUESTIONS.length)*100);
+
+  let msg;
+  if(pct >= 90) msg = "Excellent \u2014 you clearly know search, recommendations, voice assistants, and computer vision cold. You're in great shape.";
+  else if(pct >= 70) msg = "Solid work. Skim back over whichever questions tripped you up, especially the SAE levels and the filtering types.";
+  else if(pct >= 50) msg = "You're partway there. Revisit the search ranking, recommendation filtering types, and the computer vision task definitions before moving on.";
+  else msg = "This material takes a couple passes. Go back through both weeks' slides section by section, then try this review again \u2014 it'll feel different the second time.";
+
+  card.innerHTML = `
+    <div class="result">
+      <span class="qtype">Review Complete</span>
+      <div class="score-ring" style="--pct:${pct}">
+        <div class="score-ring-inner">
+          <div class="score-num">${score}/${QUESTIONS.length}</div>
+          <div class="score-den">${pct}%</div>
+        </div>
+      </div>
+      <p class="result-msg">${msg}</p>
+      <div class="result-actions">
+        <button class="btn" id="restartBtn">Try again</button>
+      </div>
+    </div>
+  `;
+  document.getElementById('restartBtn').addEventListener('click', ()=>{
+    current = 0; score = 0; renderQuestion();
+  });
+}
+
+renderQuestion();
+</script>
+
+</body>
+</html>
